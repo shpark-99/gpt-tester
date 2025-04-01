@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPT 프롬프트 테스터</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 800px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .response-box {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            white-space: pre-wrap;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center mb-4">GPT 프롬프트 테스터</h1>
+        
+        <form id="promptForm">
+            <div class="form-group">
+                <label for="apiKey">OpenAI API 키</label>
+                <input type="password" class="form-control" id="apiKey" required>
+            </div>
+
+            <div class="form-group">
+                <label for="model">GPT 모델 선택</label>
+                <select class="form-control" id="model" required>
+                    <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                    <option value="gpt-4">GPT-4</option>
+                    <option value="gpt-4-turbo-preview">GPT-4 Turbo</option>
+                    <option value="gpt-4o">GPT-4O</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="temperature">Temperature (창의성): <span id="temperatureValue">0.7</span></label>
+                <input type="range" class="form-range" id="temperature" min="0" max="2" step="0.1" value="0.7">
+                <div class="d-flex justify-content-between">
+                    <small class="text-muted">보수적 (0.0)</small>
+                    <small class="text-muted">중간 (1.0)</small>
+                    <small class="text-muted">창의적 (2.0)</small>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="referenceText">참조 텍스트</label>
+                <textarea class="form-control" id="referenceText" rows="4" required 
+                    placeholder="GPT가 참고할 텍스트를 입력하세요..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="prompt">프롬프트</label>
+                <textarea class="form-control" id="prompt" rows="4" required 
+                    placeholder="GPT에게 물어볼 내용을 입력하세요..."></textarea>
+            </div>
+
+            <div class="text-center">
+                <button type="submit" class="btn btn-primary">전송</button>
+            </div>
+        </form>
+
+        <div class="loading">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+
+        <div id="error" class="alert alert-danger" style="display: none;"></div>
+        <div id="response" class="response-box" style="display: none;"></div>
+    </div>
+
+    <script>
+        // Temperature 값 표시 업데이트
+        document.getElementById('temperature').addEventListener('input', function(e) {
+            document.getElementById('temperatureValue').textContent = e.target.value;
+        });
+
+        document.getElementById('promptForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const apiKey = document.getElementById('apiKey').value;
+            const model = document.getElementById('model').value;
+            const referenceText = document.getElementById('referenceText').value;
+            const prompt = document.getElementById('prompt').value;
+            const temperature = parseFloat(document.getElementById('temperature').value);
+            
+            // UI 초기화
+            document.querySelector('.loading').style.display = 'block';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('response').style.display = 'none';
+            
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        apiKey,
+                        model,
+                        referenceText,
+                        prompt,
+                        temperature
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                document.getElementById('response').textContent = data.response;
+                document.getElementById('response').style.display = 'block';
+            } catch (error) {
+                document.getElementById('error').textContent = error.message;
+                document.getElementById('error').style.display = 'block';
+            } finally {
+                document.querySelector('.loading').style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html> 
