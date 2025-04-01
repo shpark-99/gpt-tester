@@ -23,59 +23,38 @@ const isCompleteResponse = (response) => {
 };
 
 app.post('/api/chat', async (req, res) => {
-    const { apiKey, model, referenceText, prompt, temperature } = req.body;
-    let lastResponse = null;
-
-    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-        try {
-            const response = await axios.post('https://api.openai.com/v1/chat/completions', {
-                model: model,
-                messages: [
-                    {
-                        role: "system",
-                        content: `다음 참조 텍스트를 바탕으로 답변해주세요: ${referenceText}`
-                    },
-                    ...(lastResponse ? [{ role: "assistant", content: lastResponse }] : []),
-                    {
-                        role: "user",
-                        content: prompt
-                    }
-                ],
-                temperature: temperature || 0.7,
-                max_tokens: 2000 // 토큰 수 증가
-            }, {
-                headers: {
-                    'Authorization': `Bearer ${apiKey}`,
-                    'Content-Type': 'application/json'
+    try {
+        const { apiKey, model, referenceText, surveyPurpose, surveyTarget, prompt, temperature } = req.body;
+        
+        const response = await axios.post('https://api.openai.com/v1/chat/completions', {
+            model: model,
+            messages: [
+                {
+                    role: "system",
+                    content: `다음 정보를 바탕으로 답변해주세요:
+참조 텍스트: ${referenceText}
+설문 목적: ${surveyPurpose}
+설문 대상: ${surveyTarget}`
+                },
+                {
+                    role: "user",
+                    content: prompt
                 }
-            });
-
-            const content = response.data.choices[0].message.content;
-            
-            // 응답이 완전한지 확인
-            if (isCompleteResponse(content)) {
-                return res.json({ response: content });
+            ],
+            temperature: temperature || 0.7,
+            max_tokens: 2000
+        }, {
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
             }
+        });
 
-            // 응답이 완전하지 않으면 저장하고 재시도
-            lastResponse = content;
-            if (attempt < MAX_RETRIES - 1) {
-                await sleep(RETRY_DELAY);
-                continue;
-            }
-
-        } catch (error) {
-            console.error('Error:', error);
-            if (attempt < MAX_RETRIES - 1) {
-                await sleep(RETRY_DELAY);
-                continue;
-            }
-            return res.status(500).json({ error: 'API 호출 중 오류가 발생했습니다.' });
-        }
+        res.json({ response: response.data.choices[0].message.content });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: 'API 호출 중 오류가 발생했습니다.' });
     }
-
-    // 모든 재시도 후에도 완전하지 않은 응답을 반환
-    return res.json({ response: lastResponse });
 });
 
 const PORT = 3000;
