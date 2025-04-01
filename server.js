@@ -34,7 +34,9 @@ app.post('/api/chat', async (req, res) => {
                     content: `다음 정보를 바탕으로 답변해주세요:
 참조 텍스트: ${referenceText}
 설문 목적: ${surveyPurpose}
-설문 대상: ${surveyTarget}`
+설문 대상: ${surveyTarget}
+
+이전 대화 내용은 무시하고, 위 정보만을 바탕으로 답변해주세요.`
                 },
                 {
                     role: "user",
